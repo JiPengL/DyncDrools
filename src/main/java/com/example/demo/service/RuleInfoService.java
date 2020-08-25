@@ -21,13 +21,9 @@ public class RuleInfoService {
 
     /**
      * 获取给定场景下的规则信息列表
-     *
-     * @param sceneId 场景ID
-     * @return 规则列表
      */
     public List<RuleInfo> getRuleInfoListBySceneId(Long sceneId) {
-        Map<Long, List<RuleInfo>> sceneId2RuleInfoListMap = getRuleInfoListMap();
-        return sceneId2RuleInfoListMap.get(sceneId);
+        return getRuleInfoList(sceneId);
     }
 
     /**
@@ -47,7 +43,6 @@ public class RuleInfoService {
         return ruleInfoListMap;
     }
 
-
     List<RuleInfo> getRuleInfoList(Long sceneId){
         List<RuleInfo> infoList = Dao.getRuleInfoListBysceneId(sceneId);
         for (RuleInfo info :infoList) {
@@ -63,23 +58,16 @@ public class RuleInfoService {
 
 
 
-
-
-
-
-
-
     //    --------------------------------   TEST    --------------------------------
     /**
      * 规则 包的数字要对好 场景的ID值
      */
-
     List<RuleInfo> getRuleInfo(){
         List<RuleInfo> ruleInfoList = new ArrayList<>();
         RuleInfo info = new RuleInfo();
         info.setSceneId(1L);
         info.setId(1L);
-        String con = "package com.xu.rules.scene_{0};\n" +
+        String con = "package test.scene_{0};\n" +
                 "import com.example.demo.entity.Person;\n" +
                 "rule \"1\"\n" +
                 "\twhen\n" +
@@ -94,7 +82,6 @@ public class RuleInfoService {
         String format = MessageFormat.format(con, 1L, 1L);
         info.setContent(format);
         ruleInfoList.add(info);
-
         return ruleInfoList;
     }
 }

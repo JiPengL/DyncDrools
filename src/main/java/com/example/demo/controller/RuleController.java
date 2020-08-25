@@ -1,11 +1,9 @@
 package com.example.demo.controller;
 
-import com.example.demo.config.KieSessionHelper;
 import com.example.demo.config.RuleLoader;
 import com.example.demo.entity.Person;
+import com.example.demo.service.KieSessionService;
 import org.kie.api.runtime.KieSession;
-import org.kie.api.runtime.rule.QueryResults;
-import org.kie.api.runtime.rule.QueryResultsRow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,32 +22,14 @@ public class RuleController {
     private RuleLoader ruleLoader;
 
     @Autowired
-    private KieSessionHelper kieSessionHelper;
-
-    @GetMapping("/")
-    public String index() {
-        System.out.println("index");
-        return "success";
-    }
-
-    /**
-     * 重新加载所有规则
-     */
-    @GetMapping("reload")
-    public String reload() {
-        System.out.println("reload all");
-        ruleLoader.reloadAll();
-        return "success";
-    }
+    private KieSessionService sessionService;
 
     /**
      * 重新加载给定场景下的规则
-     *
      * @param sceneId 场景ID
      */
     @GetMapping("reload/{sceneId}")
     public String reload(@PathVariable("sceneId") Long sceneId) {
-        System.out.println("reload scene:" + sceneId);
         ruleLoader.reload(sceneId);
         return "success";
     }
@@ -62,7 +42,7 @@ public class RuleController {
     @GetMapping("fire/{sceneId}")
     public String fire(@PathVariable("sceneId") Long sceneId) {
         System.out.println("fire scene:" + sceneId);
-        KieSession kieSession = kieSessionHelper.getKieSessionBySceneId(sceneId);
+        KieSession kieSession = sessionService.getKieSessionBySceneId(sceneId);
         Person person = new Person(35,"zhangsan");
         kieSession.insert(person);
 

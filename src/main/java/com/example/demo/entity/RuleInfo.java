@@ -12,12 +12,12 @@ import lombok.Data;
 public class RuleInfo {
 
     /**
-     * 规则id，全局唯一
+     * 规则
      */
     private Long id;
 
     /**
-     * 场景id，一个场景对应多个规则，一个场景对应一个业务场景，一个场景对应一个kmodule
+     * 场景
      */
     private Long sceneId;
 

@@ -5,15 +5,12 @@ import com.example.demo.service.RuleInfoService;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieBuilder;
 import org.kie.api.builder.KieFileSystem;
-import org.kie.api.builder.Message;
 import org.kie.api.builder.Results;
 import org.kie.api.builder.model.KieBaseModel;
 import org.kie.api.builder.model.KieModuleModel;
-import org.kie.api.builder.model.KieSessionModel;
 import org.kie.api.runtime.KieContainer;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -30,52 +27,33 @@ import java.util.concurrent.ConcurrentMap;
  */
 
 @Component
-public class RuleLoader  implements ApplicationRunner {
+public class RuleLoader  implements InitializingBean {
 
-    /**
-     * key:kcontainerName,value:KieContainer，每个场景对应一个KieContainer
-     */
     private final ConcurrentMap<String, KieContainer> kieContainerMap = new ConcurrentHashMap<>();
 
     @Autowired
     private RuleInfoService ruleInfoService;
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void afterPropertiesSet() throws Exception {
         reloadAll();
     }
 
-    /**
-     * 构造kcontainerName
-     *
-     * @param sceneId 场景ID
-     * @return kcontainerName
-     */
     private String buildKcontainerName(long sceneId) {
         return "kcontainer_" + sceneId;
     }
 
-    /**
-     * 构造kbaseName
-     *
-     * @param sceneId 场景ID
-     * @return kbaseName
-     */
+
     private String buildKbaseName(long sceneId) {
         return "kbase_" + sceneId;
     }
 
-    /**
-     * 构造ksessionName
-     *
-     * @param sceneId 场景ID
-     * @return ksessionName
-     */
+
     private String buildKsessionName(long sceneId) {
         return "ksession_" + sceneId;
     }
 
-    KieContainer getKieContainerBySceneId(long sceneId) {
+    public KieContainer getKieContainerBySceneId(long sceneId) {
         return kieContainerMap.get(buildKcontainerName(sceneId));
     }
 
@@ -88,7 +66,6 @@ public class RuleLoader  implements ApplicationRunner {
             long sceneId = entry.getKey();
             reload(sceneId, entry.getValue());
         }
-        System.out.println("reload all success");
     }
 
     /**
@@ -99,37 +76,32 @@ public class RuleLoader  implements ApplicationRunner {
     public void reload(Long sceneId) {
         List<RuleInfo> ruleInfos = ruleInfoService.getRuleInfoListBySceneId(sceneId);
         reload(sceneId, ruleInfos);
-        System.out.println("reload success");
     }
 
     /**
      * 重新加载给定场景给定规则列表，对应一个kmodule
-     *
-     * @param sceneId   场景ID
-     * @param ruleInfos 规则列表
      */
     private void reload(long sceneId, List<RuleInfo> ruleInfos) {
         KieServices kieServices = KieServices.get();
         //2.创建kiemodule xml对应的class
         KieModuleModel kieModuleModel = kieServices.newKieModuleModel();
+        //TODO  .添加具体的KieBase标签
         KieBaseModel kieBaseModel = kieModuleModel.newKieBaseModel(buildKbaseName(sceneId));
         kieBaseModel.setDefault(true);
-        kieBaseModel.addPackage(MessageFormat.format("com.xu.rules.scene_{0}", String.valueOf(sceneId)));
+        //3.配合 drl的包名
+        kieBaseModel.addPackage(MessageFormat.format("test.scene_{0}", String.valueOf(sceneId)));
         kieBaseModel.newKieSessionModel(buildKsessionName(sceneId));
+        //4.创建KieFileSystem虚拟文件系统
         KieFileSystem kieFileSystem = kieServices.newKieFileSystem();
         for (RuleInfo ruleInfo : ruleInfos) {
-            String fullPath = MessageFormat.format("src/main/resources/rules/scene_{0}/rule_{1}.drl", String.valueOf(sceneId), String.valueOf(ruleInfo.getId()));
+            //5.这里是把规则文件添加到虚拟系统，第一个参数是文件在虚拟系统中的路径，这里的文件目录和3.处的addPackage必须一致，否则失败
+            String fullPath = MessageFormat.format("src/main/resources/test/scene_{0}/rule_{1}.drl", String.valueOf(sceneId), String.valueOf(ruleInfo.getId()));
             kieFileSystem.write(fullPath, ruleInfo.getContent());
         }
+        //6.添加kiemodule.xml文件到虚拟文件系统
         kieFileSystem.writeKModuleXML(kieModuleModel.toXML());
         KieBuilder kieBuilder = kieServices.newKieBuilder(kieFileSystem).buildAll();
         Results results = kieBuilder.getResults();
-        if (results.hasMessages(Message.Level.ERROR)) {
-            System.out.println(results.getMessages());
-            throw new IllegalStateException("rule error");
-        }
-
-        KieContainer kieContainer = kieServices.newKieContainer(kieServices.getRepository().getDefaultReleaseId());
-        kieContainerMap.put(buildKcontainerName(sceneId), kieContainer);
     }
+
 }
